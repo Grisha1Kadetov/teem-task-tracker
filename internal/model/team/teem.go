@@ -1,4 +1,4 @@
-package teem
+package team
 
 import (
 	"time"

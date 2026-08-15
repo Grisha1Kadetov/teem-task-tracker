@@ -1,18 +1,18 @@
 package config
 
 import (
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/pkg/log"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/log"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port      string `env:"PORT" env-default:"8080"`
-	JWTSecret string `env:"JWT_SECRET" env-default:"secret"`
-	RetryCount	int    `env:"RETRY" env-default:"3"`
-	MySQL     MySQL
-	Redis     Redis
+	Port       string `env:"PORT" env-default:"8080"`
+	JWTSecret  string `env:"JWT_SECRET" env-default:"secret"`
+	RetryCount int    `env:"RETRY" env-default:"3"`
+	MySQL      MySQL
+	Redis      Redis
 }
 
 type MySQL struct {
@@ -39,5 +39,5 @@ func LoadConfig(l log.Logger) (*Config, error) {
 }
 
 func (cfg *Config) GetMySQLDSN() string {
-	return cfg.MySQL.User + ":" + cfg.MySQL.Password + "@tcp(" + cfg.MySQL.Host + ":" + cfg.MySQL.Port + ")/" + cfg.MySQL.Database
+	return cfg.MySQL.User + ":" + cfg.MySQL.Password + "@tcp(" + cfg.MySQL.Host + ":" + cfg.MySQL.Port + ")/" + cfg.MySQL.Database + "?parseTime=true&loc=UTC"
 }

@@ -1,2 +1,2 @@
-# teem-task-tracker
+# team-task-tracker
 

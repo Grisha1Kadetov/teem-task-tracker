@@ -9,6 +9,7 @@ type Code string
 
 const (
 	BadRequest   Code = "BAD_REQUEST"
+	Conflict     Code = "CONFLICT"
 	Unauthorized Code = "UNAUTHORIZED"
 	Forbidden    Code = "FORBIDDEN"
 	NotFound     Code = "NOT_FOUND"

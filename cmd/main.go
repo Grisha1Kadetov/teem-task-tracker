@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/application"
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/config"
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/pkg/log"
-	//"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/pkg/db"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/application"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/config"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/db"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/log"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -28,7 +28,11 @@ func main() {
 		panic(err)
 	}
 
-	server := prepareServer(ctx, conf, logger)
+	sqlDB := prepareDatabase(conf, logger)
+	defer sqlDB.Close()
+
+	database := db.New(sqlDB)
+	server := prepareServer(ctx, database, conf, logger)
 
 	go func() {
 		logger.Info("starting server", log.Pair("port", conf.Port))
@@ -46,15 +50,15 @@ func main() {
 	}
 }
 
-func prepareServer(ctx context.Context, cnf *config.Config, logger log.Logger) *http.Server {
-	sqlDB := prepareDatabase(cnf, logger)
-	defer sqlDB.Close()
-	
-	//database := db.New(sqlDB)
-
-	app := application.NewApplication(ctx)
+func prepareServer(
+	ctx context.Context,
+	database db.Database,
+	cnf *config.Config,
+	logger log.Logger,
+) *http.Server {
+	app := application.NewApplication(ctx, database, *cnf, logger)
 	r := app.NewRouter()
-	
+
 	server := http.Server{
 		Addr:    ":" + cnf.Port,
 		Handler: r,

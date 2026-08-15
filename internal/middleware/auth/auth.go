@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/pkg/errorrenderer"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/errorrenderer"
 	"github.com/google/uuid"
 )
 

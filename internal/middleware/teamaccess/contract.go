@@ -3,7 +3,7 @@ package teamaccess
 import (
 	"context"
 
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/model/role"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/model/role"
 	"github.com/google/uuid"
 )
 

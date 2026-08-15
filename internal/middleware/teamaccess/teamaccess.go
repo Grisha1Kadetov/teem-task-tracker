@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/middleware/auth"
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/model/role"
-	"github.com/Grisha1Kadetov/TeemTaskTrackerService/internal/pkg/errorrenderer"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/middleware/auth"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/model/role"
+	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/errorrenderer"
 )
 
 type Checker struct {

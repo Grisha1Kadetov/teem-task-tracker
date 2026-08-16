@@ -69,6 +69,8 @@ func (c *Checker) Middleware() func(http.Handler) http.Handler {
 
 func renderResolveError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, ErrInvalidBody):
+		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid request body")
 	case errors.Is(err, ErrInvalidID):
 		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid resource ID")
 	case errors.Is(err, ErrNotFound):

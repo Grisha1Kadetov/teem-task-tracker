@@ -1,8 +1,11 @@
 package teamaccess
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,8 +13,9 @@ import (
 )
 
 var (
-	ErrInvalidID = errors.New("invalid resource ID")
-	ErrNotFound  = errors.New("resource not found")
+	ErrInvalidID   = errors.New("invalid resource ID")
+	ErrInvalidBody = errors.New("invalid request body")
+	ErrNotFound    = errors.New("resource not found")
 )
 
 type Resolver func(r *http.Request) (uuid.UUID, error)
@@ -25,6 +29,28 @@ func Path(param string) Resolver {
 func Query(param string) Resolver {
 	return func(r *http.Request) (uuid.UUID, error) {
 		return parseID(r.URL.Query().Get(param))
+	}
+}
+
+func Body(param string) Resolver {
+	return func(r *http.Request) (uuid.UUID, error) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return uuid.Nil, ErrInvalidBody
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
+
+		var values map[string]json.RawMessage
+		if err := json.Unmarshal(body, &values); err != nil {
+			return uuid.Nil, ErrInvalidBody
+		}
+
+		var value string
+		if err := json.Unmarshal(values[param], &value); err != nil {
+			return uuid.Nil, ErrInvalidID
+		}
+
+		return parseID(value)
 	}
 }
 

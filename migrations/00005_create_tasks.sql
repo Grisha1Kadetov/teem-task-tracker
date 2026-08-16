@@ -7,7 +7,7 @@ CREATE TABLE tasks (
     description TEXT NOT NULL,
     status VARCHAR(32) NOT NULL,
     created_by BINARY(16) NOT NULL,
-    assignee_id BINARY(16),
+    assignee_id BINARY(16) NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     closed_at DATETIME(6),

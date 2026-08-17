@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	taskAdapter "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/application/adapter/task"
 	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/config"
 	authHandler "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/handler/auth"
 	memberHandler "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/handler/member"
 	taskHandler "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/handler/task"
+	taskHistoryHandler "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/handler/taskhistory"
 	teamHandler "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/handler/team"
 	authMW "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/middleware/auth"
 	teamAccessMW "github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/middleware/teamaccess"
@@ -65,11 +67,12 @@ func (a *App) NewRouter() http.Handler {
 		role.Admin,
 	)
 
+	taskRepo := taskAdapter.New(taskDB.New(a.db))
 	taskHistoryRepo := taskHistoryDB.New(a.db)
-	taskHistoryService := taskHistoryService.New(taskHistoryRepo)
-	taskRepo := taskDB.New(a.db)
+	taskHistoryService := taskHistoryService.New(taskHistoryRepo, taskRepo)
+	taskHistoryHandler := taskHistoryHandler.New(taskHistoryService, a.l)
 	taskService := taskService.New(taskRepo, memberService, taskHistoryService, a.db)
-	taskHandler := taskHandler.New(taskService, a.l)
+	taskHandler := taskHandler.New(taskAdapter.NewService(taskService), a.l)
 	taskCreateAccess := teamAccessMW.New(
 		memberService,
 		teamAccessMW.Body("team_id"),
@@ -80,6 +83,13 @@ func (a *App) NewRouter() http.Handler {
 	taskListAccess := teamAccessMW.New(
 		memberService,
 		teamAccessMW.Query("team_id"),
+		role.Owner,
+		role.Admin,
+		role.Member,
+	)
+	taskAccess := teamAccessMW.New(
+		memberService,
+		teamAccessMW.PathWithService("id", taskService.FindTaskTeam),
 		role.Owner,
 		role.Admin,
 		role.Member,
@@ -96,6 +106,9 @@ func (a *App) NewRouter() http.Handler {
 			r.With(inviteAccess.Middleware()).Post("/teams/{id}/invite", memberHandler.Invite)
 			r.With(taskCreateAccess.Middleware()).Post("/tasks", taskHandler.Create)
 			r.With(taskListAccess.Middleware()).Get("/tasks", taskHandler.List)
+			r.With(taskAccess.Middleware()).Patch("/tasks/{id}", taskHandler.Update)
+			r.With(taskAccess.Middleware()).Put("/tasks/{id}", taskHandler.Replace)
+			r.With(taskAccess.Middleware()).Get("/tasks/{id}/history", taskHistoryHandler.List)
 		})
 	})
 

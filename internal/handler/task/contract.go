@@ -18,4 +18,13 @@ type service interface {
 		createdBy uuid.UUID,
 	) (task.Task, error)
 	ListTasks(ctx context.Context, filter task.Filter) ([]task.Task, error)
+	UpdateTask(
+		ctx context.Context,
+		title,
+		description *string,
+		status *task.Status,
+		assigneeID *uuid.UUID,
+		taskID,
+		changedBy uuid.UUID,
+	) error
 }

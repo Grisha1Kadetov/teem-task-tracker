@@ -15,6 +15,20 @@ type createRequest struct {
 	AssigneeID  uuid.UUID   `json:"assignee_id"`
 }
 
+type updateRequest struct {
+	Title       *string      `json:"title"`
+	Description *string      `json:"description"`
+	Status      *task.Status `json:"status"`
+	AssigneeID  *uuid.UUID   `json:"assignee_id"`
+}
+
+type replaceRequest struct {
+	Title       string      `json:"title"`
+	Description string      `json:"description"`
+	Status      task.Status `json:"status"`
+	AssigneeID  uuid.UUID   `json:"assignee_id"`
+}
+
 type taskResponse struct {
 	ID          uuid.UUID   `json:"id"`
 	TeamID      uuid.UUID   `json:"team_id"`

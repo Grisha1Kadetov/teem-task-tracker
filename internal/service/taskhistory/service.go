@@ -12,7 +12,8 @@ import (
 )
 
 type TaskHistoryService struct {
-	historyRepo historyRepo
+	historyRepo         historyRepo
+	findTaskTeamService findTaskTeamService
 }
 
 type changes struct {
@@ -20,8 +21,14 @@ type changes struct {
 	After  map[string]any `json:"after"`
 }
 
-func New(historyRepo historyRepo) *TaskHistoryService {
-	return &TaskHistoryService{historyRepo: historyRepo}
+func New(
+	historyRepo historyRepo,
+	findTaskTeamService findTaskTeamService,
+) *TaskHistoryService {
+	return &TaskHistoryService{
+		historyRepo:         historyRepo,
+		findTaskTeamService: findTaskTeamService,
+	}
 }
 
 func (s *TaskHistoryService) Record(
@@ -66,6 +73,21 @@ func (s *TaskHistoryService) Record(
 		Changes:   string(encodedChanges),
 		CreatedAt: changedAt.UTC(),
 	})
+}
+
+func (s *TaskHistoryService) ListTaskHistory(
+	ctx context.Context,
+	taskID uuid.UUID,
+) ([]taskhistory.TaskHistory, error) {
+	_, found, err := s.findTaskTeamService.FindTaskTeam(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, taskhistory.ErrTaskNotFound
+	}
+
+	return s.historyRepo.ListByTaskID(ctx, taskID)
 }
 
 func snapshot(value *task.Task) map[string]any {

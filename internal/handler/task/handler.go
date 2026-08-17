@@ -13,6 +13,7 @@ import (
 	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/model/task"
 	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/errorrenderer"
 	"github.com/Grisha1Kadetov/TeamTaskTrackerService/internal/pkg/log"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/google/uuid"
 )
@@ -144,6 +145,86 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	var request updateRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid request body")
+		return
+	}
+
+	h.update(w, r, request)
+}
+
+func (h *Handler) Replace(w http.ResponseWriter, r *http.Request) {
+	var request replaceRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid request body")
+		return
+	}
+
+	h.update(w, r, updateRequest{
+		Title:       &request.Title,
+		Description: &request.Description,
+		Status:      &request.Status,
+		AssigneeID:  &request.AssigneeID,
+	})
+}
+
+func (h *Handler) update(w http.ResponseWriter, r *http.Request, request updateRequest) {
+	if request.Title != nil {
+		title := strings.TrimSpace(*request.Title)
+		if count := utf8.RuneCountInString(title); count < 1 || count > 255 {
+			errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "incorrect task title length")
+			return
+		}
+		request.Title = &title
+	}
+	if request.Description != nil {
+		description := strings.TrimSpace(*request.Description)
+		request.Description = &description
+	}
+	if request.Status != nil {
+		status := task.Status(strings.ToLower(strings.TrimSpace(string(*request.Status))))
+		request.Status = &status
+	}
+	if request.AssigneeID != nil && *request.AssigneeID == uuid.Nil {
+		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid assignee ID")
+		return
+	}
+
+	taskID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil || taskID == uuid.Nil {
+		errorrenderer.Render(w, http.StatusBadRequest, errorrenderer.BadRequest, "invalid task ID")
+		return
+	}
+	actor, ok := authMW.ActorFromContext(r.Context())
+	if !ok {
+		errorrenderer.Render(w, http.StatusUnauthorized, errorrenderer.Unauthorized, "unauthorized")
+		return
+	}
+
+	err = h.service.UpdateTask(
+		r.Context(),
+		request.Title,
+		request.Description,
+		request.Status,
+		request.AssigneeID,
+		taskID,
+		actor.UserID,
+	)
+	if err != nil {
+		if status, code, message, ok := mapTaskError(err); ok {
+			errorrenderer.Render(w, status, code, message)
+		} else {
+			h.logger.Error("failed to update task", log.Err(err))
+			errorrenderer.Render(w, http.StatusInternalServerError, errorrenderer.Internal, "internal server error")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func newTaskResponse(value task.Task) taskResponse {
 	return taskResponse{
 		ID:          value.ID,
@@ -169,6 +250,21 @@ func mapTaskError(err error) (status int, code errorrenderer.Code, message strin
 	}
 	if errors.Is(err, task.ErrAssigneeNotTeamMember) {
 		return http.StatusBadRequest, errorrenderer.BadRequest, "assignee is not a team member", true
+	}
+	if errors.Is(err, task.ErrEditorNotTeamMember) {
+		return http.StatusForbidden, errorrenderer.Forbidden, "editor is not a team member", true
+	}
+	if errors.Is(err, task.ErrTaskNotFound) {
+		return http.StatusNotFound, errorrenderer.NotFound, "task not found", true
+	}
+	if errors.Is(err, task.ErrNoChanges) {
+		return http.StatusBadRequest, errorrenderer.BadRequest, "task has no changes", true
+	}
+	if errors.Is(err, task.ErrNoPermissionToUpdateTask) {
+		return http.StatusForbidden, errorrenderer.Forbidden, "no permission to update task", true
+	}
+	if errors.Is(err, task.ErrInsufficientPermissions) {
+		return http.StatusForbidden, errorrenderer.Forbidden, "insufficient permissions to update task", true
 	}
 
 	return 0, "", "", false
